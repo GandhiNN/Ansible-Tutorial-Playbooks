@@ -1,0 +1,18 @@
+# -*- mode:ruby -*-
+# vi: set ft=ruby :
+
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+    # Not creating a different SSH key for each host
+    config.ssh.insert_key = false
+
+    config.vm.define "app1" do |app|
+        app.vm.box = "centos/7"
+        app.vm.hostname = "app1.dev"
+        app.vm.box = "centos/7"
+        app.vm.network "forwarded_port", guest: 80, host: 8080
+        app.vm.network "forwarded_port", guest: 443, host: 8443
+        app.vm.network "forwarded_port", guest: 3000, host: 8330
+    end
+end

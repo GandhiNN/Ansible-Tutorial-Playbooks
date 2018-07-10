@@ -1,0 +1,16 @@
+---
+- hosts: all
+  tasks:
+      - name: Ensure NTP (for time synch) is installed.
+        become: yes
+        become_method: sudo
+        yum: >
+            name=ntp 
+            state=installed
+      - name: Ensure NTP is running
+        become: yes
+        become_method: sudo
+        service: >
+            name=ntpd
+            state=started
+            enabled=yes

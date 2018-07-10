@@ -1,0 +1,76 @@
+---
+- hosts: all
+  become: true
+  become_method: sudo
+  vars:
+      epelurl: https://download.fedoraproject.org/pub/epel/$releasever/$basearch/
+      nodesource: https://rpm.nodesource.com/setup_8.x
+      node_apps_location: /tmp/node/
+  tasks:
+      - name: Install curl and vim
+        yum: name={{ item }} state=present
+        with_items:
+            - curl
+            - vim
+      - name: Add epel repository
+        yum_repository:
+            name: epel
+            description: EPEL YUM repo
+            baseurl: "{{ epelurl }}"
+      - name: Add NodeSource yum repository
+        shell: curl -sL "{{ nodesource }}" | sudo bash -
+        args:
+            executable: /bin/bash
+      - name: Disable firewall (since this is a dev environment)
+        shell: iptables -F
+        args:
+            executable: /bin/bash
+      - name: Install Node.js and build tools
+        yum: 
+            name: "{{ item }}" 
+            state: latest 
+        with_items:
+            - nodejs
+            - gcc-c++
+            - make
+      - name: Verify Node.js version
+        shell: /usr/bin/node --version
+        register: noderesult
+      
+      - name: Display Node.js version
+        debug: 
+            var: noderesult.stdout_lines
+ 
+      - name: Verify npm version
+        shell: /usr/bin/npm --version
+        register: npmresult
+
+      - name: Display npm version
+        debug:
+            var: npmresult.stdout_lines
+
+      - name: Install "forever" node.js package
+        npm:
+            name: forever
+            global: yes
+            state: latest
+ 
+      - name: Ensure Node.js app folder exists.
+        file:
+            path: "{{ node_apps_location }}"
+            state: directory
+
+      - name: Copy example Node.js app to server.
+        copy:
+            src: app/hello_world.js
+            dest: "{{ node_apps_location }}"
+
+      - name: Check list of running Node.js apps
+        command: forever list
+        register: forever_list
+        changed_when: false
+
+      - name: Start example Node.js app
+        command: forever start "{{ node_apps_location }}"/hello_world.js
+        when: "forever_list.stdout.find('{{ node_apps_location }}/hello_world.js') == -1"
+
